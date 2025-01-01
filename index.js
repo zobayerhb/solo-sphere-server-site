@@ -22,11 +22,17 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect()
+    await client.connect();
     const db = client.db("solo-db");
     const jobsCollection = db.collection("jobs");
 
     // make a jobData in db
+
+    app.get("/jobs", async (req, res) => {
+      const result = await jobsCollection.find().toArray();
+      res.send(result);
+    });
+
     app.post("/add-job", async (req, res) => {
       const jobData = req.body;
       const result = await jobsCollection.insertOne(jobData);
