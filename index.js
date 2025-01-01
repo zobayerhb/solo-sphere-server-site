@@ -22,7 +22,16 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    await client.connect()
+    const db = client.db("solo-db");
+    const jobsCollection = db.collection("jobs");
+
+    // make a jobData in db
+    app.post("/add-job", async (req, res) => {
+      const jobData = req.body;
+      const result = await jobsCollection.insertOne(jobData);
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -30,7 +39,7 @@ async function run() {
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
