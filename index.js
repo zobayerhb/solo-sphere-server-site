@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const port = process.env.PORT || 5000;
 const app = express();
@@ -44,6 +44,14 @@ async function run() {
     app.post("/add-job", async (req, res) => {
       const jobData = req.body;
       const result = await jobsCollection.insertOne(jobData);
+      res.send(result);
+    });
+
+    // delete job from db
+    app.delete("/job/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await jobsCollection.deleteOne(filter);
       res.send(result);
     });
 
