@@ -41,9 +41,30 @@ async function run() {
       res.send(result);
     });
 
+    // get job id for update job details
+    app.get("/job/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await jobsCollection.findOne(filter);
+      res.send(result);
+    });
+
     app.post("/add-job", async (req, res) => {
       const jobData = req.body;
       const result = await jobsCollection.insertOne(jobData);
+      res.send(result);
+    });
+
+    // update job
+    app.put("/update-job/:id", async (req, res) => {
+      const id = req.params.id;
+      const jobData = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateJob = {
+        $set: jobData,
+      };
+      const options = { upsert: true };
+      const result = await jobsCollection.updateOne(filter, updateJob, options);
       res.send(result);
     });
 
