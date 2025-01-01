@@ -33,6 +33,14 @@ async function run() {
       res.send(result);
     });
 
+    // get all jobs by specific email
+    app.get("/jobs/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { "buyer.email": email };
+      const result = await jobsCollection.find(filter).toArray();
+      res.send(result);
+    });
+
     app.post("/add-job", async (req, res) => {
       const jobData = req.body;
       const result = await jobsCollection.insertOne(jobData);
