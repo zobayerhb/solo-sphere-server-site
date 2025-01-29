@@ -69,7 +69,7 @@ async function run() {
       res.send(result);
     });
 
-    // add bids data
+    //================= add bids data  =============
     app.post("/add-bids", async (req, res) => {
       const bidsData = req.body;
       // if alreay exists users bids
@@ -78,7 +78,6 @@ async function run() {
       if (alreadyExists) {
         return res.status(400).send("You have alreday bids in this job");
       }
-
       // bids save to bids collection
       const result = await bidsCollection.insertOne(bidsData);
 
@@ -91,6 +90,41 @@ async function run() {
       };
       const jobBidsCount = await jobsCollection.updateOne(filter, update);
 
+      res.send(result);
+    });
+
+    // get all bids jobs for specific user
+    app.get("/bids/:email", async (req, res) => {
+      const isBuyer = req.query.buyer;
+      const email = req.params.email;
+
+      let query = {};
+      if (isBuyer) {
+        query.buyer = email;
+      } else {
+        query.email = email;
+      }
+      const filter = { email };
+      const result = await bidsCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+    // get all jobs bids request for a buyer
+    // app.get("/bids-request/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   const filter = { buyer: email };
+    //   const result = await bidsCollection.find(filter).toArray();
+    //   res.send(result);
+    // });
+
+    app.patch("/bid-state-update/:id", async (req, res) => {
+      const id = req.params.id;
+      const {status} = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updated = {
+        $set: { status },
+      };
+      const result = await bidsCollection.updateOne(filter, updated);
       res.send(result);
     });
 
