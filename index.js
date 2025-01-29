@@ -25,6 +25,7 @@ async function run() {
     await client.connect();
     const db = client.db("solo-db");
     const jobsCollection = db.collection("jobs");
+    const bidsCollection = db.collection("allBids");
 
     // make a jobData in db
 
@@ -65,6 +66,31 @@ async function run() {
       };
       const options = { upsert: true };
       const result = await jobsCollection.updateOne(filter, updateJob, options);
+      res.send(result);
+    });
+
+    // add bids data
+    app.post("/add-bids", async (req, res) => {
+      const bidsData = req.body;
+      // if alreay exists users bids
+      const query = { email: bidsData.email, jobId: bidsData.jobId };
+      const alreadyExists = await bidsCollection.findOne(query);
+      if (alreadyExists) {
+        return res.status(400).send("You have alreday bids in this job");
+      }
+
+      // bids save to bids collection
+      const result = await bidsCollection.insertOne(bidsData);
+
+      // increase bid count in jobs collection
+      const filter = { _id: new ObjectId(bidsData.jobId) };
+      const update = {
+        $inc: {
+          bid_count: 1,
+        },
+      };
+      const jobBidsCount = await jobsCollection.updateOne(filter, update);
+
       res.send(result);
     });
 
