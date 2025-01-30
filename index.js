@@ -104,8 +104,7 @@ async function run() {
       } else {
         query.email = email;
       }
-      const filter = { email };
-      const result = await bidsCollection.find(filter).toArray();
+      const result = await bidsCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -119,12 +118,29 @@ async function run() {
 
     app.patch("/bid-state-update/:id", async (req, res) => {
       const id = req.params.id;
-      const {status} = req.body;
+      const { status } = req.body;
       const filter = { _id: new ObjectId(id) };
       const updated = {
         $set: { status },
       };
       const result = await bidsCollection.updateOne(filter, updated);
+      res.send(result);
+    });
+
+    app.get("/all-jobs", async (req, res) => {
+      const filter = req.query.filter;
+      const search = req.query.search;
+      const sort = req.query.sort;
+      let options = {};
+      if (sort) options = { sort: { deadline: sort === "asc" ? 1 : -1 } };
+      let query = {
+        title: {
+          $regex: search,
+          $options: "i", // options "i" make it case-insensitive & $regex use for search
+        },
+      }; // let query = { category: filter };
+      if (filter) query.category = filter;
+      const result = await jobsCollection.find(query, options).toArray();
       res.send(result);
     });
 
