@@ -2,12 +2,37 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 
 const port = process.env.PORT || 5000;
 const app = express();
 
-app.use(cors());
+const corsOptions = {
+  origin: ["http://localhost:5173"],
+  credentials: true,
+  optionalSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
+
+// verify jwt token
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) return res.status(401).send({ message: "unauthorized access" });
+
+  // verify token
+  jwt.verify(token, process.env.JWT_SECRET_KEY, (error, decoded) => {
+    if (error) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+  });
+
+  next();
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vpupb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -27,16 +52,46 @@ async function run() {
     const jobsCollection = db.collection("jobs");
     const bidsCollection = db.collection("allBids");
 
-    // make a jobData in db
+    // ================ generet jwt api ==============
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET_KEY, {
+        expiresIn: "365d",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
 
+    // jwt token clear || cookie clear before logout
+    app.get("/jwt-logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
+
+    // make a jobData in db
     app.get("/jobs", async (req, res) => {
       const result = await jobsCollection.find().toArray();
       res.send(result);
     });
 
     // get all jobs by specific email
-    app.get("/jobs/:email", async (req, res) => {
+    app.get("/jobs/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
+      const decodedEmail = req.user?.email;
+
+      if (decodedEmail !== email) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
       const filter = { "buyer.email": email };
       const result = await jobsCollection.find(filter).toArray();
       res.send(result);
@@ -94,9 +149,14 @@ async function run() {
     });
 
     // get all bids jobs for specific user
-    app.get("/bids/:email", async (req, res) => {
+    app.get("/bids/:email", verifyToken, async (req, res) => {
       const isBuyer = req.query.buyer;
       const email = req.params.email;
+      const decodedEmail = req.user?.email;
+
+      if (decodedEmail !== email) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
 
       let query = {};
       if (isBuyer) {
