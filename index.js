@@ -9,7 +9,11 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 const corsOptions = {
-  origin: ["http://localhost:5173"],
+  origin: [
+    "http://localhost:5173",
+    "https://solo-sphere-20cbd.web.app",
+    "https://solo-sphere-20cbd.firebaseapp.com",
+  ],
   credentials: true,
   optionalSuccessStatus: 200,
 };
@@ -48,7 +52,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const db = client.db("solo-db");
     const jobsCollection = db.collection("jobs");
     const bidsCollection = db.collection("allBids");
@@ -196,7 +200,7 @@ async function run() {
       if (sort) options = { sort: { deadline: sort === "asc" ? 1 : -1 } };
       let query = {
         title: {
-          $regex: search,
+          $regex: String(search),
           $options: "i", // options "i" make it case-insensitive & $regex use for search
         },
       }; // let query = { category: filter };
@@ -213,10 +217,10 @@ async function run() {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
